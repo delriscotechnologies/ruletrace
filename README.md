@@ -8,7 +8,6 @@
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="#output">Output</a> &middot;
   <a href="#how-it-works">How It Works</a> &middot;
-  <a href="#scope-and-safeguards">Scope</a> &middot;
   <a href="SECURITY.md">Security</a>
 </p>
 
@@ -87,25 +86,6 @@ EXPLICIT INBOUND RULES
 3. Detect active Windows network profiles.
 4. Search the effective firewall policy for inbound rules whose local-port filter explicitly contains the requested port or a matching range.
 5. Display the rule state, action, profile relevance, program, remote scope, and policy source.
-
-## Scope and Safeguards
-
-Ruletrace is deliberately narrow:
-
-- current Windows computer only
-- either all bound local ports or one detailed port per execution
-- TCP listeners or UDP endpoints
-- explicit local-port values and ranges; rules using `Any` are not listed
-- inbound rules only
-- no port scanning, packet capture, external requests, telemetry, or saved reports
-- no firewall, process, registry, service, or system changes
-- no simulation of the complete Windows Filtering Platform decision
-
-A listener and an allow rule do not prove that a remote connection will succeed. Interfaces, IPsec, service and package filters, third-party security software, routers, NAT, and the rest of the network path can still affect reachability.
-
-Ruletrace is an independent implementation inspired by the diagnostic idea in [Windows-Port-Firewall-Inspector](https://github.com/hasanuassan/Windows-Port-Firewall-Inspector); its source code was not copied.
-
-See [SECURITY.md](SECURITY.md) for the trust boundary and reporting guidance.
 
 ## License
 
