@@ -1,20 +1,4 @@
-<pre align="center">
-+-------------------------------------+
-|      ####   #   #  #      #####     |
-|      #   #  #   #  #      #         |
-|      ####   #   #  #      ####      |
-|      #  #   #   #  #      #         |
-|      #   #   ###   #####  #####     |
-|                                     |
-| #####  ####    ###    ####  #####   |
-|   #    #   #  #   #  #     #        |
-|   #    ####   #####  #     ####     |
-|   #    #  #   #   #  #     #        |
-|   #    #   #  #   #   #### #####    |
-|                                     |
-|       DEL RISCO TECHNOLOGIES        |
-+-------------------------------------+
-</pre>
+<h1 align="center">Ruletrace</h1>
 
 <p align="center">
   A compact, read-only Windows Firewall port diagnostic.
@@ -76,8 +60,20 @@ TCP      8080 node     5420  No explicit rule 127.0.0.1
 A specific-port query provides the underlying rule details:
 
 ```text
-RULETRACE
---------------------------------------------------
+      ####   #   #  #      #####
+      #   #  #   #  #      #
+      ####   #   #  #      ####
+      #  #   #   #  #      #
+      #   #   ###   #####  #####
+
+ #####  ####    ###    ####  #####
+   #    #   #  #   #  #     #
+   #    ####   #####  #     ####
+   #    #  #   #   #  #     #
+   #    #   #  #   #   #### #####
++-----------------------------------+
+|       DEL RISCO TECHNOLOGIES      |
++-----------------------------------+
 Target     : 443/TCP
 Profiles   : Public
 Firewall   : Public = Enabled
