@@ -4,13 +4,6 @@
   A compact, read-only Windows Firewall port diagnostic.
 </p>
 
-<p align="center">
-  <a href="#quick-start">Quick Start</a> &middot;
-  <a href="#output">Output</a> &middot;
-  <a href="#how-it-works">How It Works</a> &middot;
-  <a href="SECURITY.md">Security</a>
-</p>
-
 ---
 
 Ruletrace answers two local troubleshooting questions: which TCP and UDP ports are currently bound, and what process and inbound Windows Firewall rules are associated with a specific port?
