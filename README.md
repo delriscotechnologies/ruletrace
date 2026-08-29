@@ -6,7 +6,7 @@
 
 ---
 
-Ruletrace shows which local TCP or UDP ports are bound and helps identify the process and inbound Windows Firewall rules associated with a selected port.
+Ruletrace shows which local TCP or UDP ports are bound and identifies candidate inbound Windows Firewall rules for a selected port.
 
 ## Install
 
@@ -23,7 +23,7 @@ cd ruletrace
 1. Finds local TCP listeners or UDP endpoints.
 2. Resolves the owning process when available.
 3. Detects the active Windows network profile.
-4. Finds inbound firewall rules that explicitly match the selected port.
+4. Finds inbound rule candidates whose protocol and local-port filters include the selected target.
 5. Shows rule action, profile, application, remote scope, and policy source.
 
 ## Output
@@ -54,7 +54,7 @@ Address  PID  Process
 -------  ---  -------
 0.0.0.0 4820 nginx
 
-EXPLICIT INBOUND RULES
+CANDIDATE INBOUND RULES
 [ALLOW] Local HTTPS
   State/Profile : Enabled / Public (current: Yes)
   Program       : C:\Apps\nginx.exe
@@ -67,9 +67,9 @@ Using -All produces a compact inventory:
 ```text
 Protocol Port Process   PID  Firewall         Address
 -------- ---- -------   ---  --------         -------
-TCP       135 svchost  1700  Allow rule       ::,0.0.0.0
-TCP       445 System      4  Other profile    ::
-TCP      8080 node     5420  No explicit rule 127.0.0.1
+TCP       135 svchost  1700  Allow candidate         ::,0.0.0.0
+TCP       445 System      4  Other-profile candidate ::
+TCP      8080 node     5420  No port candidate       127.0.0.1
 ```
 
 ## Demo
@@ -97,7 +97,7 @@ List local endpoints:
 - Read-only local diagnostic.
 - Does not change firewall rules or test remote computers.
 - Firewall visibility can depend on permissions.
-- Rule presence does not guarantee that a connection will be allowed or blocked.
+- Candidate rules are selected by protocol and local port. Rule presence does not prove that a connection will be allowed or blocked; effective policy can also depend on profile, application, service, address scope, precedence, and policy source.
 - Protected process details may be unavailable.
 
 See [SECURITY.md](SECURITY.md) for security guidance.
