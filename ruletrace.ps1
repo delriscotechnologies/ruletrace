@@ -122,10 +122,10 @@ if ($All) {
             $socket = $group.Group[0]
             $matches = @($ruleRows | Where-Object { $_.Protocol -eq $socket.Protocol -and $_.Port -eq $socket.Port })
             $current = @($matches | Where-Object { $_.State -eq 'Enabled' -and $_.Applies -ne 'No' })
-            $status = if (@($current | Where-Object Action -eq 'Block').Count) { 'Block rule' }
-                elseif (@($current | Where-Object Action -eq 'Allow').Count) { 'Allow rule' }
-                elseif (@($matches | Where-Object State -eq 'Enabled').Count) { 'Other profile' }
-                elseif ($matches.Count) { 'Disabled only' } else { if ($queryErrors.Count) { 'No accessible rule' } else { 'No explicit rule' } }
+            $status = if (@($current | Where-Object Action -eq 'Block').Count) { 'Block candidate' }
+                elseif (@($current | Where-Object Action -eq 'Allow').Count) { 'Allow candidate' }
+                elseif (@($matches | Where-Object State -eq 'Enabled').Count) { 'Other-profile candidate' }
+                elseif ($matches.Count) { 'Disabled candidate' } else { if ($queryErrors.Count) { 'No accessible rule' } else { 'No port candidate' } }
             [pscustomobject]@{ Protocol = $socket.Protocol; Port = $socket.Port
                 Address = @($group.Group.Address | Select-Object -Unique) -join ','
                 Process = $socket.Process; PID = $socket.PID; Firewall = $status }
@@ -139,9 +139,9 @@ if ($All) {
 Write-Host "`nLOCAL SOCKET" -ForegroundColor Cyan
 if ($socketRows.Count) { $socketRows | Select-Object Address, PID, Process | Format-Table -AutoSize }
 else { Write-Host "No local $Protocol endpoint was found on port $Port." -ForegroundColor Yellow }
-Write-Host 'EXPLICIT INBOUND RULES' -ForegroundColor Cyan
+Write-Host 'CANDIDATE INBOUND RULES' -ForegroundColor Cyan
 if (-not $ruleRows.Count) {
-    Write-Host $(if ($queryErrors.Count) { 'No matching rule was found in the accessible policy data.' } else { 'No firewall rule explicitly references this port.' })
+    Write-Host $(if ($queryErrors.Count) { 'No candidate rule was found in the accessible policy data.' } else { 'No inbound rule has a port and protocol filter that includes this target.' })
 }
 foreach ($item in ($ruleRows | Sort-Object Action, Rule)) {
     Write-Host ("[{0}] {1}" -f $item.Action.ToUpperInvariant(), $item.Rule) -ForegroundColor $(if ($item.Action -eq 'Block') { 'Red' } else { 'Green' })
