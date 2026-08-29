@@ -28,9 +28,49 @@ cd ruletrace
 
 ## Output
 
-A specific-port query shows the local socket and matching inbound firewall rules.
+A specific-port query looks like this:
 
-Using -All displays a compact inventory of local TCP listeners and UDP endpoints.
+```text
+      ####   #   #  #      #####
+      #   #  #   #  #      #
+      ####   #   #  #      ####
+      #  #   #   #  #      #
+      #   #   ###   #####  #####
+
+ #####  ####    ###    ####  #####
+   #    #   #  #   #  #     #
+   #    ####   #####  #     ####
+   #    #  #   #   #  #     #
+   #    #   #  #   #   #### #####
++-----------------------------------+
+|       DEL RISCO TECHNOLOGIES      |
++-----------------------------------+
+Target     : 443/TCP
+Profiles   : Public
+Firewall   : Public = Enabled
+
+LOCAL SOCKET
+Address  PID  Process
+-------  ---  -------
+0.0.0.0 4820 nginx
+
+EXPLICIT INBOUND RULES
+[ALLOW] Local HTTPS
+  State/Profile : Enabled / Public (current: Yes)
+  Program       : C:\Apps\nginx.exe
+  Remote scope  : Any
+  Source        : Local
+```
+
+Using -All produces a compact inventory:
+
+```text
+Protocol Port Process   PID  Firewall         Address
+-------- ---- -------   ---  --------         -------
+TCP       135 svchost  1700  Allow rule       ::,0.0.0.0
+TCP       445 System      4  Other profile    ::
+TCP      8080 node     5420  No explicit rule 127.0.0.1
+```
 
 ## Demo
 
