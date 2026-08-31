@@ -51,11 +51,11 @@ CANDIDATE INBOUND RULES
 Using -All produces a compact inventory:
 
 ```text
-Protocol Port Process   PID  Firewall         Address
--------- ---- -------   ---  --------         -------
-TCP       135 svchost  1700  Allow candidate         ::,0.0.0.0
-TCP       445 System      4  Other-profile candidate ::
-TCP      8080 node     5420  No port candidate       127.0.0.1
+Protocol Port Process  PID Firewall                Address
+-------- ---- ------- ---- ----------------------- -----------
+TCP       135 svchost 1700 Allow candidate         ::,0.0.0.0
+TCP       445 System     4 Other-profile candidate ::
+TCP      8080 node    5420 No port candidate       127.0.0.1
 ```
 
 ## Demo
