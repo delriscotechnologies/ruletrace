@@ -32,22 +32,7 @@ cd ruletrace
 A specific-port query looks like this:
 
 ```text
-      ####   #   #  #      #####
-      #   #  #   #  #      #
-      ####   #   #  #      ####
-      #  #   #   #  #      #
-      #   #   ###   #####  #####
-
- #####  ####    ###    ####  #####
-   #    #   #  #   #  #     #
-   #    ####   #####  #     ####
-   #    #  #   #   #  #     #
-   #    #   #  #   #   #### #####
-+-----------------------------------+
-|       DEL RISCO TECHNOLOGIES      |
-+-----------------------------------+
-Target     : 443/TCP
-Profiles   : Public
+RULETRACE | Target: 443/TCP | Profiles: Public
 Firewall   : Public = Enabled
 
 LOCAL SOCKET
