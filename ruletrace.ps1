@@ -1,21 +1,16 @@
 [CmdletBinding(DefaultParameterSetName = 'Port')]
 param(
-    [Parameter(Mandatory = $true, Position = 0, ParameterSetName = 'Port')]
-    [ValidateRange(1, 65535)]
-    [int]$Port,
-    [Parameter(Mandatory = $true, ParameterSetName = 'All')]
-    [switch]$All,
-    [Parameter(ParameterSetName = 'Port')]
-    [ValidateSet('TCP', 'UDP')]
-    [string]$Protocol = 'TCP'
+    [Parameter(Mandatory, Position = 0, ParameterSetName = 'Port')][ValidateRange(1, 65535)][int]$Port,
+    [Parameter(Mandatory, ParameterSetName = 'All')][switch]$All,
+    [Parameter(ParameterSetName = 'Port')][ValidateSet('TCP', 'UDP')][string]$Protocol = 'TCP'
 )
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest; $ErrorActionPreference = 'Stop'
 function Test-PortSpec {
     param([string[]]$Values, [int]$Target)
     foreach ($value in $Values) {
         foreach ($part in ($value -split ',')) {
             $part = $part.Trim()
+            if ($part -eq 'Any') { return $true }
             if ($part -match '^\d+$' -and [int]$part -eq $Target) { return $true }
             if ($part -match '^(\d+)-(\d+)$' -and $Target -ge [int]$Matches[1] -and $Target -le [int]$Matches[2]) { return $true }
         }
@@ -31,39 +26,44 @@ function Test-RuleProfile {
     }
     return 'No'
 }
+$processNames = @{}
 function Convert-Socket {
     param($Items, [string]$Name)
     foreach ($item in $Items) {
-        $owner = Get-Process -Id $item.OwningProcess -ErrorAction SilentlyContinue
+        $processId = [int]$item.OwningProcess
+        if (-not $processNames.ContainsKey($processId)) {
+            $owner = Get-Process -Id $processId -ErrorAction SilentlyContinue; $processNames[$processId] = if ($owner) { $owner.ProcessName } else { 'Unavailable' }; if ($owner) { $owner.Dispose() }
+        }
         [pscustomobject]@{
             Protocol = $Name
             Port = [int]$item.LocalPort
             Address = [string]$item.LocalAddress
-            PID = [int]$item.OwningProcess
-            Process = if ($owner) { $owner.ProcessName } else { 'Unavailable' }
+            PID = $processId
+            Process = $processNames[$processId]
         }
     }
 }
 try {
+    $queryErrors = @(); $socketErrors = @()
     $activeProfiles = @(
-        Get-NetConnectionProfile -ErrorAction SilentlyContinue |
+        Get-NetConnectionProfile -ErrorAction SilentlyContinue -ErrorVariable +queryErrors |
             Where-Object { $_.IPv4Connectivity -ne 'Disconnected' -or $_.IPv6Connectivity -ne 'Disconnected' } |
             ForEach-Object { $name = [string]$_.NetworkCategory; if ($name -eq 'DomainAuthenticated') { 'Domain' } else { $name } } |
             Select-Object -Unique
     )
-    $profileDetails = @(Get-NetFirewallProfile -PolicyStore ActiveStore | Where-Object { $activeProfiles -contains [string]$_.Name })
+    $profileDetails = @(Get-NetFirewallProfile -PolicyStore ActiveStore -ErrorAction SilentlyContinue -ErrorVariable +queryErrors | Where-Object { $activeProfiles -contains [string]$_.Name })
     $tcp = @(); $udp = @()
     if ($All -or $Protocol -eq 'TCP') {
-        $tcp = @(if ($All) { Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue } else { Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue })
+        $tcp = @(if ($All) { Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue -ErrorVariable +socketErrors } else { Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue -ErrorVariable +socketErrors })
     }
     if ($All -or $Protocol -eq 'UDP') {
-        $udp = @(if ($All) { Get-NetUDPEndpoint -ErrorAction SilentlyContinue } else { Get-NetUDPEndpoint -LocalPort $Port -ErrorAction SilentlyContinue })
+        $udp = @(if ($All) { Get-NetUDPEndpoint -ErrorAction SilentlyContinue -ErrorVariable +socketErrors } else { Get-NetUDPEndpoint -LocalPort $Port -ErrorAction SilentlyContinue -ErrorVariable +socketErrors })
     }
+    $queryErrors += @($socketErrors | Where-Object { $_.CategoryInfo.Category -ne 'ObjectNotFound' })
     $socketRows = @(Convert-Socket $tcp 'TCP'; Convert-Socket $udp 'UDP')
     $targets = @(if ($All) { $socketRows | Select-Object Protocol, Port -Unique } else { [pscustomobject]@{ Protocol = $Protocol; Port = $Port } })
-    $queryErrors = @()
     $portFilters = @(Get-NetFirewallPortFilter -PolicyStore ActiveStore -ErrorAction SilentlyContinue -ErrorVariable +queryErrors)
-    $protocolCodes = @{ TCP = '6'; UDP = '17' }
+    $protocolCodes = @{ TCP = '6'; UDP = '17' }; $ruleMetadata = @{}
     $ruleRows = @(
         foreach ($filter in $portFilters) {
             $filterProtocol = [string]$filter.Protocol
@@ -74,16 +74,20 @@ try {
             if (-not $matchedTargets.Count) { continue }
             foreach ($rule in @($filter | Get-NetFirewallRule -PolicyStore ActiveStore -TracePolicyStore -ErrorAction SilentlyContinue -ErrorVariable +queryErrors)) {
                 if ([string]$rule.Direction -ne 'Inbound') { continue }
-                $apps = @($rule | Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue -ErrorVariable +queryErrors)
-                $addresses = @($rule | Get-NetFirewallAddressFilter -ErrorAction SilentlyContinue -ErrorVariable +queryErrors)
+                $key = [string]$rule.Name
+                if (-not $ruleMetadata.ContainsKey($key)) {
+                    $apps = @($rule | Get-NetFirewallApplicationFilter -ErrorAction SilentlyContinue -ErrorVariable +queryErrors); $addresses = @($rule | Get-NetFirewallAddressFilter -ErrorAction SilentlyContinue -ErrorVariable +queryErrors)
+                    $ruleMetadata[$key] = [pscustomobject]@{ Program = if ($apps.Count -and $apps[0].Program) { $apps.Program -join ', ' } else { 'Any' }; Remote = if ($addresses.Count -and $addresses[0].RemoteAddress) { $addresses.RemoteAddress -join ', ' } else { 'Any' } }
+                }
+                $metadata = $ruleMetadata[$key]
                 foreach ($target in $matchedTargets) {
                     $ruleProfile = [string]$rule.Profile
-                    [pscustomobject]@{ Id = [string]$rule.Name; Port = $target.Port; Protocol = $target.Protocol
+                    [pscustomobject]@{ Id = $key; Port = $target.Port; Protocol = $target.Protocol
                         Rule = [string]$rule.DisplayName; Action = [string]$rule.Action
                         State = if ([string]$rule.Enabled -eq 'True') { 'Enabled' } else { 'Disabled' }
                         Profile = $ruleProfile; Applies = Test-RuleProfile $ruleProfile $activeProfiles
-                        Program = if ($apps.Count -and $apps[0].Program) { $apps.Program -join ', ' } else { 'Any' }
-                        Remote = if ($addresses.Count -and $addresses[0].RemoteAddress) { $addresses.RemoteAddress -join ', ' } else { 'Any' }
+                        Program = $metadata.Program
+                        Remote = $metadata.Remote
                         Source = [string]$rule.PolicyStoreSourceType }
                 }
             }
@@ -91,22 +95,8 @@ try {
     )
     $ruleRows = @($ruleRows | Sort-Object Protocol, Port, Id -Unique)
 }
-catch {
-    throw "Ruletrace could not query Windows networking data: $($_.Exception.Message)"
-}
-$banner = @'
-      ####   #   #  #      #####
-      #   #  #   #  #      #
-      ####   #   #  #      ####
-      #  #   #   #  #      #
-      #   #   ###   #####  #####
-
- #####  ####    ###    ####  #####
-   #    #   #  #   #  #     #
-   #    ####   #####  #     ####
-   #    #  #   #   #  #     #
-   #    #   #  #   #   #### #####
-'@
+catch { throw "Ruletrace could not query Windows networking data: $($_.Exception.Message)" }
+$banner = "      ####   #   #  #      #####`n      #   #  #   #  #      #`n      ####   #   #  #      ####`n      #  #   #   #  #      #`n      #   #   ###   #####  #####`n`n #####  ####    ###    ####  #####`n   #    #   #  #   #  #     #`n   #    ####   #####  #     ####`n   #    #  #   #   #  #     #`n   #    #   #  #   #   #### #####"
 $displayWidth = [Math]::Max(37, [int]$Host.UI.RawUI.WindowSize.Width); Write-Host
 $leftPad = ' ' * [Math]::Max(0, [int](($displayWidth - 37) / 2))
 foreach ($line in ($banner -split "`r?`n")) { Write-Host "$leftPad$line" -ForegroundColor Cyan }
@@ -114,7 +104,7 @@ foreach ($line in ("+-----------------------------------+`n|       DEL RISCO TEC
 Write-Host ("Target     : {0}" -f $(if ($All) { 'All local TCP/UDP ports' } else { "$Port/$Protocol" }))
 Write-Host ("Profiles   : {0}" -f $(if ($activeProfiles.Count) { $activeProfiles -join ', ' } else { 'Unknown' }))
 foreach ($profile in $profileDetails) { Write-Host ("Firewall   : {0} = {1}" -f $profile.Name, $(if ([string]$profile.Enabled -eq 'True') { 'Enabled' } else { 'Disabled' })) }
-if ($queryErrors.Count) { Write-Host 'Warning    : Some firewall data was unavailable; results may be incomplete.' -ForegroundColor Yellow }
+if ($queryErrors.Count) { Write-Host 'Warning    : Some networking or firewall data was unavailable; results may be incomplete.' -ForegroundColor Yellow }
 if ($All) {
     Write-Host "`nLOCAL PORTS" -ForegroundColor Cyan
     $summaryRows = @(
