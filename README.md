@@ -23,8 +23,9 @@ cd ruletrace
 1. Finds local TCP listeners or UDP endpoints.
 2. Resolves the owning process when available.
 3. Detects the active Windows network profile.
-4. Finds inbound rule candidates whose protocol and local-port filters include the selected target.
+4. Finds inbound rule candidates whose protocol and local-port filters include the selected target, including `Any`, individual ports, and ranges.
 5. Shows rule action, profile, application, remote scope, and policy source.
+6. Warns when networking or firewall data is only partially available.
 
 ## Output
 
@@ -96,8 +97,8 @@ List local endpoints:
 
 - Read-only local diagnostic.
 - Does not change firewall rules or test remote computers.
-- Firewall visibility can depend on permissions.
-- Candidate rules are selected by protocol and local port. Rule presence does not prove that a connection will be allowed or blocked; effective policy can also depend on profile, application, service, address scope, precedence, and policy source.
+- Firewall visibility can depend on permissions; Ruletrace warns when results may be incomplete.
+- Candidate rules are selected by protocol and local port, including `Any` and port ranges. Rule presence does not prove that a connection will be allowed or blocked; effective policy can also depend on profile, application, service, address scope, precedence, and policy source.
 - Protected process details may be unavailable.
 
 See [SECURITY.md](SECURITY.md) for security guidance.
