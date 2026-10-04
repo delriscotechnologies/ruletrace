@@ -85,9 +85,3 @@ List local endpoints:
 - Firewall visibility can depend on permissions; Ruletrace warns when results may be incomplete.
 - Candidate rules are selected by protocol and local port, including `Any` and port ranges. Rule presence does not prove that a connection will be allowed or blocked; effective policy can also depend on profile, application, service, address scope, precedence, and policy source.
 - Protected process details may be unavailable.
-
-See [SECURITY.md](SECURITY.md) for security guidance.
-
-## License
-
-Ruletrace is available under the [MIT License](LICENSE).
